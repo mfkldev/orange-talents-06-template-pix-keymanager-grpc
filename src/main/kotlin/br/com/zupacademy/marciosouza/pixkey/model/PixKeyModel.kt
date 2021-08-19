@@ -29,7 +29,4 @@ class PixKeyModel(
     val id: Long? = null
 
     val uuid: UUID = UUID.randomUUID()
-    override fun toString(): String {
-        return "PixKeyModel(clientId=$clientId, keyType=${keyType.name}, key='$key', accountType=${accountType.name}, id=$id, uuid=$uuid)"
-    }
 }

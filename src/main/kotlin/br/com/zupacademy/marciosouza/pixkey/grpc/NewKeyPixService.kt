@@ -14,10 +14,11 @@ class NewKeyPixService(
 {
     fun register(pixKeyModel: PixKeyModel) : PixKeyModel{
 
-        val possibleKey = pixKeyRepository.findByKey(pixKeyModel.key)
-        possibleKey?.let{throw ExistingPixKey("Essa chave pix já está registrada")}
+        pixKeyRepository.existsByKey(pixKeyModel.key) && throw ExistingPixKey("Essa chave pix já está registrada")
 
         val accountsItauResponse = itauApiClient.getAccount(pixKeyModel.clientId.toString(), pixKeyModel.accountType.name)
+
+        accountsItauResponse.body()?: throw IllegalStateException("Cliente não foi encontrado nos registros de clientes do Itau")
 
         pixKeyRepository.save(pixKeyModel)
 

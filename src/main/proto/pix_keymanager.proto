@@ -24,13 +24,15 @@ message CreateKeyResponse {
 }
 
 enum TipoChave {
-  CPF = 0;
-  TELEFONE = 1;
-  EMAIL = 2;
-  ALEATORIA = 3;
+  TIPO_CHAVE_DESCONHECIDA = 0;
+  CPF = 1;
+  TELEFONE = 2;
+  EMAIL = 3;
+  ALEATORIA = 4;
 }
 
 enum TipoConta {
-  CONTA_CORRENTE = 0;
-  CONTA_POUPANCA = 1;
+  TIPO_CONTA_DESCONHECIDA = 0;
+  CONTA_CORRENTE = 1;
+  CONTA_POUPANCA = 2;
 }
