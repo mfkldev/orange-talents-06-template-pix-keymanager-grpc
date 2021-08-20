@@ -1,5 +1,6 @@
 package br.com.zupacademy.marciosouza.pixkey.model
 
+import br.com.zupacademy.marciosouza.TipoChave
 import br.com.zupacademy.marciosouza.TipoConta
 import br.com.zupacademy.marciosouza.pixkey.validation.ValidPixKey
 import br.com.zupacademy.marciosouza.pixkey.validation.ValidUUID
@@ -19,7 +20,7 @@ class PixKeyModel(
 
     @field:NotNull
     @Enumerated
-    val keyType: KeyType,
+    val keyType: TipoChave,
 
     @field:Size(max = 77)
     @field:NotBlank
@@ -34,4 +35,8 @@ class PixKeyModel(
     val id: Long? = null
 
     val uuid: UUID = UUID.randomUUID()
+
+    override fun toString(): String {
+        return "PixKeyModel(clientId=$clientId, keyType=${keyType.name}, key='$key', accountType=${accountType.name}, id=$id, uuid=$uuid)"
+    }
 }

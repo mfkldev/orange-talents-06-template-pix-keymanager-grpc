@@ -1,4 +1,4 @@
-package br.com.zupacademy.marciosouza.pixkey.grpc
+package br.com.zupacademy.marciosouza.pixkey.grpc.createpixkey
 
 import br.com.zupacademy.marciosouza.pixkey.exception.ExistingPixKeyException
 import br.com.zupacademy.marciosouza.pixkey.itauapi.ItauApiClient

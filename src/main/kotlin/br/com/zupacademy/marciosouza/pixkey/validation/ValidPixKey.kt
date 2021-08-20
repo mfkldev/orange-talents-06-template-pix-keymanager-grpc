@@ -1,5 +1,6 @@
 package br.com.zupacademy.marciosouza.pixkey.validation
 
+import br.com.zupacademy.marciosouza.TipoChave
 import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel
 import io.micronaut.core.annotation.AnnotationValue
 import io.micronaut.validation.validator.constraints.ConstraintValidator
@@ -18,7 +19,6 @@ import kotlin.reflect.KClass
 @Constraint(validatedBy = [ValidPixKeyValidator::class])
 annotation class ValidPixKey(
     val message: String = "chave Pix invalida",
-
     val groups: Array<KClass<Any>> = [],
     val payload: Array<KClass<Payload>> = []
 )
@@ -32,9 +32,13 @@ class ValidPixKeyValidator : ConstraintValidator<ValidPixKey, PixKeyModel> {
         context: ConstraintValidatorContext?
     ): Boolean {
 
-        if (value?.keyType == null) {
-            return false
+        when(value?.keyType){
+
+            TipoChave.TELEFONE -> return value.key.matches("^\\+[1-9][0-9]\\d{1,14}$".toRegex())
+            TipoChave.CPF -> return value.key.matches("^[0-9]{11}\$".toRegex())
+            TipoChave.EMAIL -> return value.key.contains("@")
+
+            else -> return true
         }
-        return value.keyType.valid(value.key)
     }
 }

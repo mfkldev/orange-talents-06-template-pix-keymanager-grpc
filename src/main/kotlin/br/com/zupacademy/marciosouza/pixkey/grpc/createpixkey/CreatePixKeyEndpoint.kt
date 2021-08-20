@@ -1,4 +1,4 @@
-package br.com.zupacademy.marciosouza.pixkey.grpc
+package br.com.zupacademy.marciosouza.pixkey.grpc.createpixkey
 
 import br.com.zupacademy.marciosouza.*
 import br.com.zupacademy.marciosouza.pixkey.exception.InvalidDataException
@@ -9,16 +9,17 @@ import javax.inject.Singleton
 
 @ErrorHandler
 @Singleton
-class CreatePixKey(@Inject private val newKeyPixService: NewKeyPixService) : KeymanagerCreateKeyServiceGrpc.KeymanagerCreateKeyServiceImplBase(){
+class CreatePixKeyEndpoint(
+    @Inject private val newKeyPixService: NewKeyPixService) : KeymanagerCreateKeyServiceGrpc.KeymanagerCreateKeyServiceImplBase(){
 
     override fun create(
         request: CreateKeyRequest,
-        responseObserver: StreamObserver<CreateKeyResponse>)
-    {
+        responseObserver: StreamObserver<CreateKeyResponse>){
 
         checkDataEntry(request)
 
         val pixKeyModel = request.toModel()
+
         val createdKeyPix = newKeyPixService.register(pixKeyModel)
 
         responseObserver.onNext(
@@ -31,9 +32,6 @@ class CreatePixKey(@Inject private val newKeyPixService: NewKeyPixService) : Key
     }
 
     fun checkDataEntry(request: CreateKeyRequest) {
-
-        println("REQUEST: ${request.clienteId} | ${request.tipoChave} | ${request.chave} | ${request.tipoConta}")
-
         when {
             request.clienteId.isBlank() -> throw InvalidDataException("É obrigatório passar o id do cliente")
             request.tipoChave.equals(TipoChave.TIPO_CHAVE_DESCONHECIDA) -> throw InvalidDataException("É obrigatório passar um tipo de chave válido")
