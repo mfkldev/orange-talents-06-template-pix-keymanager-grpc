@@ -2,10 +2,12 @@ package br.com.zupacademy.marciosouza.pixkey.grpc
 
 import br.com.zupacademy.marciosouza.*
 import br.com.zupacademy.marciosouza.pixkey.exception.InvalidDataException
+import br.com.zupacademy.marciosouza.pixkey.validation.ErrorHandler
 import io.grpc.stub.StreamObserver
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@ErrorHandler
 @Singleton
 class CreatePixKey(@Inject private val newKeyPixService: NewKeyPixService) : KeymanagerCreateKeyServiceGrpc.KeymanagerCreateKeyServiceImplBase(){
 
