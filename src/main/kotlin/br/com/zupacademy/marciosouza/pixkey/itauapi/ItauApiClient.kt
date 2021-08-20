@@ -1,6 +1,6 @@
 package br.com.zupacademy.marciosouza.pixkey.itauapi
 
-import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.AccountsItauResponse
+import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.AccountItauResponse
 import io.micronaut.http.HttpResponse
 import io.micronaut.http.annotation.Get
 import io.micronaut.http.annotation.PathVariable
@@ -11,5 +11,5 @@ import io.micronaut.http.client.annotation.Client
 interface ItauApiClient {
 
     @Get("clientes/{clienteId}/contas")
-    fun getAccount(@PathVariable clienteId: String, @QueryValue tipo: String): HttpResponse<AccountsItauResponse>
+    fun getAccount(@PathVariable clienteId: String, @QueryValue tipo: String): HttpResponse<AccountItauResponse>
 }

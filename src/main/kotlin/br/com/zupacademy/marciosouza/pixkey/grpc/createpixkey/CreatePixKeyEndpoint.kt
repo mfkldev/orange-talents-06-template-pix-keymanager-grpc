@@ -10,11 +10,11 @@ import javax.inject.Singleton
 @ErrorHandler
 @Singleton
 class CreatePixKeyEndpoint(
-    @Inject private val newKeyPixService: NewKeyPixService) : KeymanagerCreateKeyServiceGrpc.KeymanagerCreateKeyServiceImplBase(){
+    @Inject private val newKeyPixService: NewKeyPixService) : PixKeyServiceGrpc.PixKeyServiceImplBase(){
 
     override fun create(
-        request: CreateKeyRequest,
-        responseObserver: StreamObserver<CreateKeyResponse>){
+        request: KeyRequest,
+        responseObserver: StreamObserver<KeyResponse>){
 
         checkDataEntry(request)
 
@@ -23,7 +23,7 @@ class CreatePixKeyEndpoint(
         val createdKeyPix = newKeyPixService.register(pixKeyModel)
 
         responseObserver.onNext(
-            CreateKeyResponse.newBuilder()
+            KeyResponse.newBuilder()
                 .setClienteId(createdKeyPix.clientId.toString())
                 .setPixId(createdKeyPix.id.toString())
                 .build()
@@ -31,7 +31,7 @@ class CreatePixKeyEndpoint(
         responseObserver.onCompleted()
     }
 
-    fun checkDataEntry(request: CreateKeyRequest) {
+    fun checkDataEntry(request: KeyRequest) {
         when {
             request.clienteId.isBlank() -> throw InvalidDataException("É obrigatório passar o id do cliente")
             request.tipoChave.equals(TipoChave.TIPO_CHAVE_DESCONHECIDA) -> throw InvalidDataException("É obrigatório passar um tipo de chave válido")

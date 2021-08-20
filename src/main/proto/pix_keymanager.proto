@@ -7,18 +7,18 @@ option objc_class_prefix = "HLW";
 
 package br.com.zupacademy.marciosouza;
 
-service KeymanagerCreateKeyService {
-  rpc create(CreateKeyRequest) returns (CreateKeyResponse) {}
+service PixKeyService { //KeymanagerCreateKeyService
+  rpc create(KeyRequest) returns (KeyResponse) {}
 }
 
-message CreateKeyRequest{
+message KeyRequest{
   string clienteId = 1;
   TipoChave tipoChave = 2;
   string chave = 3;
   TipoConta tipoConta = 4;
 }
 
-message CreateKeyResponse {
+message KeyResponse {
   string clienteId = 1;
   string pixId = 2;
 }
