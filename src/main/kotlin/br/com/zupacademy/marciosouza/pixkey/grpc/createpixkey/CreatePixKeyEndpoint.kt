@@ -3,6 +3,7 @@ package br.com.zupacademy.marciosouza.pixkey.grpc.createpixkey
 import br.com.zupacademy.marciosouza.*
 import br.com.zupacademy.marciosouza.pixkey.exception.InvalidDataException
 import br.com.zupacademy.marciosouza.pixkey.validation.ErrorHandler
+import io.grpc.Status
 import io.grpc.stub.StreamObserver
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,7 +17,7 @@ class CreatePixKeyEndpoint(
         request: KeyRequest,
         responseObserver: StreamObserver<KeyResponse>){
 
-        checkDataEntry(request)
+        checkDataEntry(request, responseObserver)
 
         val pixKeyModel = request.toModel()
 
@@ -31,11 +32,27 @@ class CreatePixKeyEndpoint(
         responseObserver.onCompleted()
     }
 
-    fun checkDataEntry(request: KeyRequest) {
+    fun checkDataEntry(request: KeyRequest, responseObserver: StreamObserver<KeyResponse>) {
+
         when {
-            request.clienteId.isBlank() -> throw InvalidDataException("É obrigatório passar o id do cliente")
-            request.tipoChave.equals(TipoChave.TIPO_CHAVE_DESCONHECIDA) -> throw InvalidDataException("É obrigatório passar um tipo de chave válido")
-            request.tipoConta.equals(TipoConta.TIPO_CONTA_DESCONHECIDA) -> throw InvalidDataException("É obrigatório passar um tipo de conta válido")
+            request.clienteId.isBlank() -> {
+                responseObserver?.onError(Status.INVALID_ARGUMENT
+                    .augmentDescription("\${required.id.client}")
+                    .asRuntimeException())
+                throw InvalidDataException("\${required.id.client}")
+            }
+            request.tipoChave.equals(TipoChave.TIPO_CHAVE_DESCONHECIDA) -> {
+                responseObserver?.onError(Status.INVALID_ARGUMENT
+                    .augmentDescription("\${required.valid.typekey}")
+                    .asRuntimeException())
+                throw InvalidDataException("\${required.valid.typekey}")
+            }
+            request.tipoConta.equals(TipoConta.TIPO_CONTA_DESCONHECIDA) -> {
+                responseObserver?.onError(Status.INVALID_ARGUMENT
+                    .augmentDescription("\${required.valid.typeaccount}")
+                    .asRuntimeException())
+                throw InvalidDataException("\${required.valid.typekey}")
+            }
         }
     }
 }

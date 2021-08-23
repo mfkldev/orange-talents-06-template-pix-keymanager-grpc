@@ -18,3 +18,10 @@ datasources:
 jpa.default.properties.hibernate.hbm2ddl.auto: update
 jpa.default.properties.hibernate.show_sql: true
 jpa.default.properties.hibernate.format_sql: true
+
+#Mensagens
+client.not.found: Cliente não foi encontrado nos registros de clientes do Itau
+key.already.registered: Essa chave pix já está registrada
+required.id.client: É obrigatório passar o id do cliente
+required.valid.typekey: É obriatório passar um tipo de chave válido
+required.valid.typeaccount: É obriatório passar um tipo de conta válido

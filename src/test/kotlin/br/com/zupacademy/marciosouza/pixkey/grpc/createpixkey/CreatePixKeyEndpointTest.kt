@@ -7,17 +7,21 @@ import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.InstituicaoReponse
 import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.TitularResponse
 import br.com.zupacademy.marciosouza.pixkey.repository.PixKeyRepository
 import io.grpc.ManagedChannel
+import io.grpc.Status
+import io.grpc.StatusRuntimeException
 import io.micronaut.context.annotation.Factory
 import io.micronaut.grpc.annotation.GrpcChannel
 import io.micronaut.grpc.server.GrpcServerChannel
 import io.micronaut.http.HttpResponse
 import io.micronaut.test.annotation.MockBean
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
+import org.junit.jupiter.api.assertThrows
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.mock
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,7 +44,7 @@ internal class CreatePixKeyEndpointTest {
 
     @MockBean(ItauApiClient::class)
     fun mockItauApiClient(): ItauApiClient?{
-        return Mockito.mock(ItauApiClient::class.java)
+        return mock(ItauApiClient::class.java)
     }
 
     @Factory
@@ -62,14 +66,13 @@ internal class CreatePixKeyEndpointTest {
         val cpf = "04998330314"
         val request = KeyRequest
             .newBuilder()
-            .setClienteId("0d1bb194-3c52-4e67-8c35-a93c0af9284f")
+            .setClienteId(UUID.randomUUID().toString())
             .setTipoChave(TipoChave.CPF)
             .setChave(cpf)
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
-        Mockito
-            .`when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
             .thenReturn(HttpResponse.ok(accountItauResponse))
 
         val response: KeyResponse = pixGrpc.create(request)
@@ -84,15 +87,15 @@ internal class CreatePixKeyEndpointTest {
         val phone = "+5598984769646"
         val request = KeyRequest
             .newBuilder()
-            .setClienteId("0d1bb194-3c52-4e67-8c35-a93c0af9284f")
+            .setClienteId(UUID.randomUUID().toString())
             .setTipoChave(TipoChave.TELEFONE)
             .setChave(phone)
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
-        Mockito
-            .`when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+
+            `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+                .thenReturn(HttpResponse.ok(accountItauResponse))
 
         val  response: KeyResponse = pixGrpc.create(request)
         with(response){
@@ -106,15 +109,15 @@ internal class CreatePixKeyEndpointTest {
         val email = "marcio.souza@zup.com.br"
         val request = KeyRequest
             .newBuilder()
-            .setClienteId("0d1bb194-3c52-4e67-8c35-a93c0af9284f")
+            .setClienteId(UUID.randomUUID().toString())
             .setTipoChave(TipoChave.EMAIL)
             .setChave(email)
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
-        Mockito
-            .`when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+
+            `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+                .thenReturn(HttpResponse.ok(accountItauResponse))
 
         val  response: KeyResponse = pixGrpc.create(request)
         with(response){
@@ -127,19 +130,109 @@ internal class CreatePixKeyEndpointTest {
     fun `Deve cadastrar uma chave pix do tipo Aleatoria`(){
         val request = KeyRequest
             .newBuilder()
-            .setClienteId("0d1bb194-3c52-4e67-8c35-a93c0af9284f")
+            .setClienteId(UUID.randomUUID().toString())
             .setTipoChave(TipoChave.ALEATORIA)
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
-        Mockito
-            .`when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+            `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+                .thenReturn(HttpResponse.ok(accountItauResponse))
 
         val  response: KeyResponse = pixGrpc.create(request)
         with(response){
             assertNotNull(pixId)
+            assertTrue(repository.findAll().isNotEmpty())
         }
     }
 
+    @Test
+    fun `Não deve cadastrar uma chave pix quando o cliente informado não for encontrado no sistema do Itau`(){
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId(UUID.randomUUID().toString())
+            .setTipoChave(TipoChave.ALEATORIA)
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.notFound())
+
+        val error = assertThrows<StatusRuntimeException>{
+            pixGrpc.create(request)
+        }
+
+        with(error){
+            assertEquals(Status.FAILED_PRECONDITION.code, status.code)
+            assertEquals("\${client.not.found}", status.description)
+        }
+    }
+
+    @Test
+    fun `Deve dar erro ao enviar o clientId em branco`(){
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId("")
+            .setTipoChave(TipoChave.EMAIL)
+            .setChave("email@email.com.br")
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(accountItauResponse))
+
+        val error = assertThrows<StatusRuntimeException> {
+            pixGrpc.create(request)
+        }
+
+        with(error){
+            assertEquals("\${required.id.client}", status.description)
+            assertEquals(Status.INVALID_ARGUMENT.code, status.code)
+        }
+    }
+
+    @Test
+    fun `Deve dar erro ao enviar um tipo de chave invalido`(){
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId(UUID.randomUUID().toString())
+            .setTipoChave(TipoChave.TIPO_CHAVE_DESCONHECIDA)
+            .setChave("email@email.com.br")
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(accountItauResponse))
+
+        val error = assertThrows<StatusRuntimeException> {
+            pixGrpc.create(request)
+        }
+
+        with(error){
+            assertEquals("\${required.valid.typekey}", status.description)
+            assertEquals(Status.INVALID_ARGUMENT.code, status.code)
+        }
+    }
+
+    @Test
+    fun `Deve dar erro ao enviar um tipo de conta invalido`(){
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId(UUID.randomUUID().toString())
+            .setTipoChave(TipoChave.EMAIL)
+            .setChave("email@email.com.br")
+            .setTipoConta(TipoConta.TIPO_CONTA_DESCONHECIDA)
+            .build()
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(accountItauResponse))
+
+        val error = assertThrows<StatusRuntimeException> {
+            pixGrpc.create(request)
+        }
+
+        with(error){
+            assertEquals("\${required.valid.typeaccount}", status.description)
+            assertEquals(Status.INVALID_ARGUMENT.code, status.code)
+        }
+    }
 }
