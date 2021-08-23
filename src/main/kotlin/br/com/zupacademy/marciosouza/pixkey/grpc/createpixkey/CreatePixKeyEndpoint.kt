@@ -23,14 +23,12 @@ class CreatePixKeyEndpoint(
 
         checkDataEntry(request, responseObserver)
 
-        val pixKeyModel = request.toModel()
-
-        val createdKeyPix : PixKeyModel = newKeyPixService.register(pixKeyModel, responseObserver)
+        val createdKeyPix : PixKeyModel = newKeyPixService.register(request, responseObserver)
 
         responseObserver.onNext(
             KeyResponse.newBuilder()
                 .setClienteId(createdKeyPix.clientId.toString())
-                .setPixId(createdKeyPix.id.toString())
+                .setPixId(createdKeyPix.pixId.toString())
                 .build()
         )
         responseObserver.onCompleted()

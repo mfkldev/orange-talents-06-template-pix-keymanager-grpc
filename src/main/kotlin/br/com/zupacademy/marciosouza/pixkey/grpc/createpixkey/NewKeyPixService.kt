@@ -1,5 +1,6 @@
 package br.com.zupacademy.marciosouza.pixkey.grpc.createpixkey
 
+import br.com.zupacademy.marciosouza.KeyRequest
 import br.com.zupacademy.marciosouza.KeyResponse
 import br.com.zupacademy.marciosouza.pixkey.exception.ExistingPixKeyException
 import br.com.zupacademy.marciosouza.pixkey.itauapi.ItauApiClient
@@ -20,7 +21,9 @@ class NewKeyPixService(
     @Inject val itauApiClient: ItauApiClient,
     val messageApi: Messages)
 {
-    fun register(pixKeyModel: PixKeyModel, responseObserver: StreamObserver<KeyResponse>) : PixKeyModel{
+    fun register(request: KeyRequest, responseObserver: StreamObserver<KeyResponse>) : PixKeyModel{
+
+        val pixKeyModel = request.toModel()
 
         try {
             pixKeyRepository.existsByKey(pixKeyModel.key) && throw ExistingPixKeyException(messageApi.keyAlreadyRegistered)

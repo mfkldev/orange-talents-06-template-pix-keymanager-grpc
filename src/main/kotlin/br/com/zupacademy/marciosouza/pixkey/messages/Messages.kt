@@ -18,4 +18,10 @@ class Messages {
 
     @Value("\${key.already.registered}")
     lateinit var keyAlreadyRegistered: String
+
+    @Value("\${required.pix.id}")
+    lateinit var requiredPixId: String
+
+    @Value("\${pixkey.not.found:}")
+    lateinit var pixkeyNotFound: String
 }

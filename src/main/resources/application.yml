@@ -26,3 +26,5 @@ required.id.client: É obrigatório passar o id do cliente
 required.valid.typekey: É obriatório passar um tipo de chave válido
 required.valid.typeaccount: É obriatório passar um tipo de conta válido
 invalid.pix.format: Formato da chave Pix não é válido
+required.pix.id: É obrigatório passar o id do pix
+pixkey.not.found: Chave pix não encontrada

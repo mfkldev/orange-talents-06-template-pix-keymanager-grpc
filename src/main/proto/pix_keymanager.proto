@@ -7,8 +7,12 @@ option objc_class_prefix = "HLW";
 
 package br.com.zupacademy.marciosouza;
 
-service PixKeyService { //KeymanagerCreateKeyService
+service PixKeyService {
   rpc create(KeyRequest) returns (KeyResponse) {}
+}
+
+service DeletePixKeyService {
+  rpc delete(DelKeyRequest) returns (DelKeyResponse) {}
 }
 
 message KeyRequest{
@@ -19,6 +23,16 @@ message KeyRequest{
 }
 
 message KeyResponse {
+  string clienteId = 1;
+  string pixId = 2;
+}
+
+message DelKeyRequest{
+  string clienteId = 1;
+  string pixId = 2;
+}
+
+message DelKeyResponse {
   string clienteId = 1;
   string pixId = 2;
 }
