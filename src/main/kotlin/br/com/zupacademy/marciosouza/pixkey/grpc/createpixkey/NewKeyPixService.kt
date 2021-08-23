@@ -1,9 +1,14 @@
 package br.com.zupacademy.marciosouza.pixkey.grpc.createpixkey
 
+import br.com.zupacademy.marciosouza.KeyResponse
 import br.com.zupacademy.marciosouza.pixkey.exception.ExistingPixKeyException
 import br.com.zupacademy.marciosouza.pixkey.itauapi.ItauApiClient
+import br.com.zupacademy.marciosouza.pixkey.messages.Messages
 import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel
 import br.com.zupacademy.marciosouza.pixkey.repository.PixKeyRepository
+import io.grpc.Status
+import io.grpc.stub.StreamObserver
+import io.micronaut.context.annotation.Value
 import io.micronaut.validation.Validated
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,15 +17,41 @@ import javax.inject.Singleton
 @Singleton
 class NewKeyPixService(
     @Inject val pixKeyRepository: PixKeyRepository,
-    @Inject val itauApiClient: ItauApiClient)
+    @Inject val itauApiClient: ItauApiClient,
+    val messageApi: Messages)
 {
-    fun register(pixKeyModel: PixKeyModel) : PixKeyModel{
+    fun register(pixKeyModel: PixKeyModel, responseObserver: StreamObserver<KeyResponse>) : PixKeyModel{
 
-        pixKeyRepository.existsByKey(pixKeyModel.key) && throw ExistingPixKeyException("\${key.already.registered}")
+        try {
+            pixKeyRepository.existsByKey(pixKeyModel.key) && throw ExistingPixKeyException(messageApi.keyAlreadyRegistered)
+        }catch (exeption: Exception){
+            when(exeption) {
+                is ExistingPixKeyException -> {
+                    responseObserver.onError(
+                        Status.ALREADY_EXISTS
+                            .augmentDescription(messageApi.keyAlreadyRegistered)
+                            .asRuntimeException()
+                    )
+                }
+            }
+        }
 
         val accountsItauResponse = itauApiClient.getAccount(pixKeyModel.clientId.toString(), pixKeyModel.accountType.name)
 
-        accountsItauResponse.body()?: throw IllegalStateException("\${client.not.found}")
+        try{
+            accountsItauResponse.body()?:
+            throw IllegalStateException(messageApi.clientNotFound)
+        }catch (exeption: Exception){
+            when(exeption) {
+                is IllegalStateException -> {
+                    responseObserver.onError(
+                        Status.NOT_FOUND
+                            .augmentDescription(messageApi.clientNotFound)
+                            .asRuntimeException()
+                    )
+                }
+            }
+        }
 
         pixKeyRepository.save(pixKeyModel)
 

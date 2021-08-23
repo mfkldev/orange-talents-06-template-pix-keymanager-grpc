@@ -18,7 +18,7 @@ import kotlin.reflect.KClass
 @Target(CLASS, TYPE)
 @Constraint(validatedBy = [ValidPixKeyValidator::class])
 annotation class ValidPixKey(
-    val message: String = "chave Pix invalida",
+    val message: String = "formato da chave Pix não é válido",
     val groups: Array<KClass<Any>> = [],
     val payload: Array<KClass<Payload>> = []
 )

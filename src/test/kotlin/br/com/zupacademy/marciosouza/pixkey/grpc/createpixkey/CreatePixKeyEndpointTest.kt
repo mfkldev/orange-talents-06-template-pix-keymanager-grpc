@@ -5,6 +5,8 @@ import br.com.zupacademy.marciosouza.pixkey.itauapi.ItauApiClient
 import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.AccountItauResponse
 import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.InstituicaoReponse
 import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.TitularResponse
+import br.com.zupacademy.marciosouza.pixkey.messages.Messages
+import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel
 import br.com.zupacademy.marciosouza.pixkey.repository.PixKeyRepository
 import io.grpc.ManagedChannel
 import io.grpc.Status
@@ -26,7 +28,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @MicronautTest(transactional = false)
-internal class CreatePixKeyEndpointTest {
+internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
+
+    val genericEmail: String = "email@email.com.br"
+    val genericCpf: String = "84141550060"
+    val genericPhone: String = "+5598984000000"
 
     @Inject
     lateinit var pixGrpc: PixKeyServiceGrpc.PixKeyServiceBlockingStub
@@ -63,12 +69,11 @@ internal class CreatePixKeyEndpointTest {
 
     @Test
     fun `Deve cadastrar uma chave pix do tipo CPF`() {
-        val cpf = "04998330314"
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
             .setTipoChave(TipoChave.CPF)
-            .setChave(cpf)
+            .setChave(genericCpf)
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
@@ -78,18 +83,17 @@ internal class CreatePixKeyEndpointTest {
         val response: KeyResponse = pixGrpc.create(request)
         with(response) {
             assertNotNull(pixId)
-            assertTrue(repository.existsByKey(cpf))
+            assertTrue(repository.existsByKey(genericCpf))
         }
     }
 
     @Test
     fun `Deve cadastrar uma chave pix do tipo Telefone`(){
-        val phone = "+5598984769646"
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
             .setTipoChave(TipoChave.TELEFONE)
-            .setChave(phone)
+            .setChave(genericPhone)
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
@@ -100,18 +104,17 @@ internal class CreatePixKeyEndpointTest {
         val  response: KeyResponse = pixGrpc.create(request)
         with(response){
             assertNotNull(pixId)
-            assertTrue(repository.existsByKey(phone))
+            assertTrue(repository.existsByKey(genericPhone))
         }
     }
 
     @Test
     fun `Deve cadastrar uma chave pix do tipo Email`(){
-        val email = "marcio.souza@zup.com.br"
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
             .setTipoChave(TipoChave.EMAIL)
-            .setChave(email)
+            .setChave(genericEmail)
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
@@ -122,7 +125,7 @@ internal class CreatePixKeyEndpointTest {
         val  response: KeyResponse = pixGrpc.create(request)
         with(response){
             assertNotNull(pixId)
-            assertTrue(repository.existsByKey(email))
+            assertTrue(repository.existsByKey(genericEmail))
         }
     }
 
@@ -146,7 +149,7 @@ internal class CreatePixKeyEndpointTest {
     }
 
     @Test
-    fun `Não deve cadastrar uma chave pix quando o cliente informado não for encontrado no sistema do Itau`(){
+    fun `Nao deve cadastrar uma chave pix quando o cliente informado não for encontrado no sistema do Itau`(){
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -162,8 +165,8 @@ internal class CreatePixKeyEndpointTest {
         }
 
         with(error){
-            assertEquals(Status.FAILED_PRECONDITION.code, status.code)
-            assertEquals("\${client.not.found}", status.description)
+            assertEquals(messageApi.clientNotFound, status.description)
+            assertEquals(Status.NOT_FOUND.code, status.code)
         }
     }
 
@@ -173,7 +176,7 @@ internal class CreatePixKeyEndpointTest {
             .newBuilder()
             .setClienteId("")
             .setTipoChave(TipoChave.EMAIL)
-            .setChave("email@email.com.br")
+            .setChave(genericEmail)
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
@@ -185,7 +188,7 @@ internal class CreatePixKeyEndpointTest {
         }
 
         with(error){
-            assertEquals("\${required.id.client}", status.description)
+            assertEquals(messageApi.requiredIdClient, status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
     }
@@ -196,7 +199,7 @@ internal class CreatePixKeyEndpointTest {
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
             .setTipoChave(TipoChave.TIPO_CHAVE_DESCONHECIDA)
-            .setChave("email@email.com.br")
+            .setChave(genericEmail)
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
@@ -208,7 +211,7 @@ internal class CreatePixKeyEndpointTest {
         }
 
         with(error){
-            assertEquals("\${required.valid.typekey}", status.description)
+            assertEquals(messageApi.requiredValidTypeKey, status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
     }
@@ -219,7 +222,7 @@ internal class CreatePixKeyEndpointTest {
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
             .setTipoChave(TipoChave.EMAIL)
-            .setChave("email@email.com.br")
+            .setChave(genericEmail)
             .setTipoConta(TipoConta.TIPO_CONTA_DESCONHECIDA)
             .build()
 
@@ -231,7 +234,105 @@ internal class CreatePixKeyEndpointTest {
         }
 
         with(error){
-            assertEquals("\${required.valid.typeaccount}", status.description)
+            assertEquals(messageApi.requiredValidTypeAccount, status.description)
+            assertEquals(Status.INVALID_ARGUMENT.code, status.code)
+        }
+    }
+
+    @Test
+    fun `Deve dar erro ao tentar cadastrar um chave que já foi cadastrada anteriormente`(){
+
+        val pixKeyModel = PixKeyModel(UUID.randomUUID(), TipoChave.EMAIL, genericEmail, TipoConta.CONTA_CORRENTE)
+        repository.save(pixKeyModel)
+
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId(UUID.randomUUID().toString())
+            .setTipoChave(TipoChave.EMAIL)
+            .setChave(genericEmail)
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(accountItauResponse))
+
+        val error = assertThrows<StatusRuntimeException> {
+            pixGrpc.create(request)
+        }
+
+        with(error){
+            assertEquals(messageApi.keyAlreadyRegistered, status.description)
+            assertEquals(Status.ALREADY_EXISTS.code, status.code)
+        }
+    }
+
+    @Test
+    fun `Deve dar erro ao enviar CPF mal formatado`(){
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId(UUID.randomUUID().toString())
+            .setTipoChave(TipoChave.CPF)
+            .setChave("1234567890")
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(accountItauResponse))
+
+        val error = assertThrows<StatusRuntimeException> {
+            pixGrpc.create(request)
+        }
+
+        with(error){
+            assertEquals("save.entity: formato da chave Pix não é válido", status.description)
+            assertEquals(Status.INVALID_ARGUMENT.code, status.code)
+        }
+    }
+
+
+    @Test
+    fun `Deve dar erro ao enviar email mal formatado`(){
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId(UUID.randomUUID().toString())
+            .setTipoChave(TipoChave.EMAIL)
+            .setChave("email.com.br")
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(accountItauResponse))
+
+        val error = assertThrows<StatusRuntimeException> {
+            pixGrpc.create(request)
+        }
+
+        with(error){
+            assertEquals("save.entity: formato da chave Pix não é válido", status.description)
+            assertEquals(Status.INVALID_ARGUMENT.code, status.code)
+        }
+    }
+
+
+    @Test
+    fun `Deve dar erro ao enviar telefone mal formatado`(){
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId(UUID.randomUUID().toString())
+            .setTipoChave(TipoChave.TELEFONE)
+            .setChave("98984000000")
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(accountItauResponse))
+
+        val error = assertThrows<StatusRuntimeException> {
+            pixGrpc.create(request)
+        }
+
+        with(error){
+            assertEquals("save.entity: formato da chave Pix não é válido", status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
     }
