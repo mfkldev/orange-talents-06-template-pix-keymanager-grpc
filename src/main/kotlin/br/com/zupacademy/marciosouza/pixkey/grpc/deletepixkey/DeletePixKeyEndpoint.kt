@@ -6,7 +6,7 @@ import br.com.zupacademy.marciosouza.DeletePixKeyServiceGrpc
 import br.com.zupacademy.marciosouza.pixkey.messages.Messages
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
-import org.hibernate.ObjectNotFoundException
+import br.com.zupacademy.marciosouza.pixkey.exception.ObjectNotFoundException
 import java.lang.Exception
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,7 +27,7 @@ class DeletePixKeyEndpoint(
                 DelKeyResponse
                     .newBuilder()
                     .setClienteId(request.clienteId)
-                    .setPixId(request.clienteId)
+                    .setPixId(request.pixId)
                     .build()
             )
             responseObserver.onCompleted()
