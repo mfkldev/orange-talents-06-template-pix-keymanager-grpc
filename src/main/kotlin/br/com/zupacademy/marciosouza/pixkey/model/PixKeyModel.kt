@@ -24,7 +24,7 @@ class PixKeyModel(
 
     @field:Size(max = 77)
     @field:NotBlank
-    val key: String,
+    var key: String,
 
     @field:NotNull
     @Enumerated
@@ -41,5 +41,9 @@ class PixKeyModel(
 
     override fun toString(): String {
         return "PixKeyModel(clientId=$clientId, keyType=${keyType.name}, key='$key', accountType=${accountType.name}, id=$id, uuid=$pixId)"
+    }
+
+    fun associateKeyFromBcb(keyFromBcb: String) {
+        this.key = keyFromBcb
     }
 }

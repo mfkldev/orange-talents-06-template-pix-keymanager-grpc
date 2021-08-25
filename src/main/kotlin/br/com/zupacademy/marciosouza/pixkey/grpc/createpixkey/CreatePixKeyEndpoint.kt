@@ -34,7 +34,6 @@ class CreatePixKeyEndpoint(
         responseObserver.onCompleted()
     }
 
-
     fun checkDataEntry(request: KeyRequest, responseObserver: StreamObserver<KeyResponse>) {
 
         when {

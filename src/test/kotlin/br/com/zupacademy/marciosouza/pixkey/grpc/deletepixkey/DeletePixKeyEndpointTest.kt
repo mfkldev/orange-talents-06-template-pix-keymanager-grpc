@@ -1,7 +1,7 @@
 package br.com.zupacademy.marciosouza.pixkey.grpc.deletepixkey
 
 import br.com.zupacademy.marciosouza.*
-import br.com.zupacademy.marciosouza.pixkey.itauapi.ItauApiClient
+import br.com.zupacademy.marciosouza.pixkey.client.itauapi.ItauApiClient
 import br.com.zupacademy.marciosouza.pixkey.messages.Messages
 import br.com.zupacademy.marciosouza.pixkey.model.AssociatedAccount
 import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel

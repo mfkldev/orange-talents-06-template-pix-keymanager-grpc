@@ -1,10 +1,13 @@
 package br.com.zupacademy.marciosouza.pixkey.grpc.createpixkey
 
 import br.com.zupacademy.marciosouza.*
-import br.com.zupacademy.marciosouza.pixkey.itauapi.ItauApiClient
-import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.AccountItauResponse
-import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.InstituicaoReponse
-import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.TitularResponse
+import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.BcbApiClient
+import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.dto.CreatePixKeyRequest
+import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.dto.CreatePixKeyResponse
+import br.com.zupacademy.marciosouza.pixkey.client.itauapi.ItauApiClient
+import br.com.zupacademy.marciosouza.pixkey.client.itauapi.dto.AccountItauResponse
+import br.com.zupacademy.marciosouza.pixkey.client.itauapi.dto.InstituicaoReponse
+import br.com.zupacademy.marciosouza.pixkey.client.itauapi.dto.TitularResponse
 import br.com.zupacademy.marciosouza.pixkey.messages.Messages
 import br.com.zupacademy.marciosouza.pixkey.model.AssociatedAccount
 import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel
@@ -34,6 +37,7 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
     val genericEmail: String = "email@email.com.br"
     val genericCpf: String = "84141550060"
     val genericPhone: String = "+5598984000000"
+    val genericCreatedAt: String = "2021-08-25T18:39:03.052Z"
 
     @Inject
     lateinit var pixGrpc: PixKeyServiceGrpc.PixKeyServiceBlockingStub
@@ -44,14 +48,22 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
     @Inject
     lateinit var itauApi: ItauApiClient
 
+    @Inject
+    lateinit var bcbApi: BcbApiClient
+
     @BeforeEach
     fun setUp() {
         repository.deleteAll()
     }
 
     @MockBean(ItauApiClient::class)
-    fun mockItauApiClient(): ItauApiClient?{
+    fun mockItauApiClient(): ItauApiClient? {
         return mock(ItauApiClient::class.java)
+    }
+
+    @MockBean(BcbApiClient::class)
+    fun mockBcbApiClient(): BcbApiClient? {
+        return mock(BcbApiClient::class.java)
     }
 
     @Factory
@@ -62,11 +74,49 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
         }
     }
 
-    val accountItauResponse = AccountItauResponse(
-        "CONTA_CORRENTE",
-        InstituicaoReponse("ITAÚ UNIBANCO S.A.", "60701190"),
-        "0001", "291900",
-        TitularResponse("c56dfef4-7901-44fb-84e2-a2cefb157890", "Rafael M C Ponte","02467781054"))
+    fun createAccountItauResponse(request: KeyRequest) : AccountItauResponse{
+        return AccountItauResponse(
+            request.tipoConta.toString(),
+            InstituicaoReponse("ITAÚ UNIBANCO S.A.", "60701190"),
+            "0001", "291900",
+            TitularResponse("c56dfef4-7901-44fb-84e2-a2cefb157890", "Rafael M C Ponte", "84141550060")
+        )
+    }
+
+    fun genericAssociatedAccount(accountItauResponse: AccountItauResponse) : AssociatedAccount{
+        return AssociatedAccount(
+            accountItauResponse.tipo,
+            accountItauResponse.instituicao.nome,
+            accountItauResponse.instituicao.ispb,
+            accountItauResponse.agencia,
+            accountItauResponse.numero,
+            accountItauResponse.titular.id,
+            accountItauResponse.titular.nome,
+            accountItauResponse.titular.cpf
+        )
+    }
+
+    fun createPixKeyRequest(request: KeyRequest, accountItauResponse : AccountItauResponse) : CreatePixKeyRequest {
+        return CreatePixKeyRequest(
+            PixKeyModel(
+                UUID.fromString(request.clienteId),
+                request.tipoChave,
+                request.chave,
+                request.tipoConta,
+                genericAssociatedAccount(accountItauResponse)
+            )
+        )
+    }
+
+    fun createPixKeyResponse(createPixKeyRequest: CreatePixKeyRequest): CreatePixKeyResponse{
+        return CreatePixKeyResponse(
+            createPixKeyRequest.convertKeyType(),
+            createPixKeyRequest.key,
+            createPixKeyRequest.bankAccount,
+            createPixKeyRequest.owner,
+            genericCreatedAt
+        )
+    }
 
     @Test
     fun `Deve cadastrar uma chave pix do tipo CPF`() {
@@ -78,10 +128,18 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
-            `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+        val createAccountItauResponse = createAccountItauResponse(request)
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
+
+        val createPixKeyRequest = createPixKeyRequest(request, createAccountItauResponse)
+
+        `when`(bcbApi.postPixKey(createPixKeyRequest))
+            .thenReturn(HttpResponse.ok(createPixKeyResponse(createPixKeyRequest)))
 
         val response: KeyResponse = pixGrpc.create(request)
+
         with(response) {
             assertNotNull(pixId)
             assertTrue(repository.existsByKey(genericCpf))
@@ -89,7 +147,7 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
     }
 
     @Test
-    fun `Deve cadastrar uma chave pix do tipo Telefone`(){
+    fun `Deve cadastrar uma chave pix do tipo Telefone`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -98,19 +156,20 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
+        val createAccountItauResponse = createAccountItauResponse(request)
 
-            `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-                .thenReturn(HttpResponse.ok(accountItauResponse))
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
-        val  response: KeyResponse = pixGrpc.create(request)
-        with(response){
+        val response: KeyResponse = pixGrpc.create(request)
+        with(response) {
             assertNotNull(pixId)
             assertTrue(repository.existsByKey(genericPhone))
         }
     }
 
     @Test
-    fun `Deve cadastrar uma chave pix do tipo Email`(){
+    fun `Deve cadastrar uma chave pix do tipo Email`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -119,19 +178,20 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
+        val createAccountItauResponse = createAccountItauResponse(request)
 
-            `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-                .thenReturn(HttpResponse.ok(accountItauResponse))
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
-        val  response: KeyResponse = pixGrpc.create(request)
-        with(response){
+        val response: KeyResponse = pixGrpc.create(request)
+        with(response) {
             assertNotNull(pixId)
             assertTrue(repository.existsByKey(genericEmail))
         }
     }
 
     @Test
-    fun `Deve cadastrar uma chave pix do tipo Aleatoria`(){
+    fun `Deve cadastrar uma chave pix do tipo Aleatoria`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -139,18 +199,20 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
-            `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-                .thenReturn(HttpResponse.ok(accountItauResponse))
+        val createAccountItauResponse = createAccountItauResponse(request)
 
-        val  response: KeyResponse = pixGrpc.create(request)
-        with(response){
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
+
+        val response: KeyResponse = pixGrpc.create(request)
+        with(response) {
             assertNotNull(pixId)
             assertTrue(repository.findAll().isNotEmpty())
         }
     }
 
     @Test
-    fun `Nao deve cadastrar uma chave pix quando o cliente informado não for encontrado no sistema do Itau`(){
+    fun `Nao deve cadastrar uma chave pix quando o cliente informado não for encontrado no sistema do Itau`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -161,18 +223,18 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
             .thenReturn(HttpResponse.notFound())
 
-        val error = assertThrows<StatusRuntimeException>{
+        val error = assertThrows<StatusRuntimeException> {
             pixGrpc.create(request)
         }
 
-        with(error){
+        with(error) {
             assertEquals(messageApi.clientNotFound, status.description)
             assertEquals(Status.NOT_FOUND.code, status.code)
         }
     }
 
     @Test
-    fun `Deve dar erro ao enviar o clientId em branco`(){
+    fun `Deve dar erro ao enviar o clientId em branco`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId("")
@@ -181,21 +243,23 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
+        val createAccountItauResponse = createAccountItauResponse(request)
+
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
         val error = assertThrows<StatusRuntimeException> {
             pixGrpc.create(request)
         }
 
-        with(error){
+        with(error) {
             assertEquals(messageApi.requiredIdClient, status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
     }
 
     @Test
-    fun `Deve dar erro ao enviar um tipo de chave invalido`(){
+    fun `Deve dar erro ao enviar um tipo de chave invalido`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -204,21 +268,23 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
+        val createAccountItauResponse = createAccountItauResponse(request)
+
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
         val error = assertThrows<StatusRuntimeException> {
             pixGrpc.create(request)
         }
 
-        with(error){
+        with(error) {
             assertEquals(messageApi.requiredValidTypeKey, status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
     }
 
     @Test
-    fun `Deve dar erro ao enviar um tipo de conta invalido`(){
+    fun `Deve dar erro ao enviar um tipo de conta invalido`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -227,30 +293,33 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.TIPO_CONTA_DESCONHECIDA)
             .build()
 
+        val createAccountItauResponse = createAccountItauResponse(request)
+
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
         val error = assertThrows<StatusRuntimeException> {
             pixGrpc.create(request)
         }
 
-        with(error){
+        with(error) {
             assertEquals(messageApi.requiredValidTypeAccount, status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
     }
 
     @Test
-    fun `Deve dar erro ao tentar cadastrar um chave que já foi cadastrada anteriormente`(){
+    fun `Deve dar erro ao tentar cadastrar um chave que já foi cadastrada anteriormente`() {
         val clientId = UUID.randomUUID()
         val associatedAccount = AssociatedAccount(
             TipoConta.CONTA_CORRENTE.toString(),
             "ITAÚ UNIBANCO S.A.", "60701190",
             "0001", "291900",
-            clientId.toString(), "Rafael M C Ponte","02467781054"
+            clientId.toString(), "Rafael M C Ponte", "02467781054"
         )
 
-        val pixKeyModel = PixKeyModel(clientId, TipoChave.EMAIL, genericEmail, TipoConta.CONTA_CORRENTE, associatedAccount)
+        val pixKeyModel =
+            PixKeyModel(clientId, TipoChave.EMAIL, genericEmail, TipoConta.CONTA_CORRENTE, associatedAccount)
         repository.save(pixKeyModel)
 
         val request = KeyRequest
@@ -261,21 +330,23 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
+        val createAccountItauResponse = createAccountItauResponse(request)
+
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
         val error = assertThrows<StatusRuntimeException> {
             pixGrpc.create(request)
         }
 
-        with(error){
+        with(error) {
             assertEquals(messageApi.keyAlreadyRegistered, status.description)
             assertEquals(Status.ALREADY_EXISTS.code, status.code)
         }
     }
 
     @Test
-    fun `Deve dar erro ao enviar CPF mal formatado`(){
+    fun `Deve dar erro ao enviar CPF mal formatado`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -284,14 +355,16 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
+        val createAccountItauResponse = createAccountItauResponse(request)
+
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
         val error = assertThrows<StatusRuntimeException> {
             pixGrpc.create(request)
         }
 
-        with(error){
+        with(error) {
             assertEquals("save.entity: formato da chave Pix não é válido", status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
@@ -299,7 +372,7 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
 
 
     @Test
-    fun `Deve dar erro ao enviar email mal formatado`(){
+    fun `Deve dar erro ao enviar email mal formatado`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -308,14 +381,16 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
+        val createAccountItauResponse = createAccountItauResponse(request)
+
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
         val error = assertThrows<StatusRuntimeException> {
             pixGrpc.create(request)
         }
 
-        with(error){
+        with(error) {
             assertEquals("save.entity: formato da chave Pix não é válido", status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
@@ -323,7 +398,7 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
 
 
     @Test
-    fun `Deve dar erro ao enviar telefone mal formatado`(){
+    fun `Deve dar erro ao enviar telefone mal formatado`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -332,14 +407,16 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
             .setTipoConta(TipoConta.CONTA_CORRENTE)
             .build()
 
+        val createAccountItauResponse = createAccountItauResponse(request)
+
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
-            .thenReturn(HttpResponse.ok(accountItauResponse))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
         val error = assertThrows<StatusRuntimeException> {
             pixGrpc.create(request)
         }
 
-        with(error){
+        with(error) {
             assertEquals("save.entity: formato da chave Pix não é válido", status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }

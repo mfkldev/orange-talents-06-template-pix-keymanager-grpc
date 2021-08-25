@@ -7,8 +7,8 @@ class AssociatedAccount(
     val typeAccount: String,
     val bankName: String,
     val bankIspb: String,
-    val agency: String,
-    val bumber: String,
+    val branch: String,
+    val numberAccount: String,
     val ownerId: String,
     val ownerName: String,
     val ownerCpf: String
