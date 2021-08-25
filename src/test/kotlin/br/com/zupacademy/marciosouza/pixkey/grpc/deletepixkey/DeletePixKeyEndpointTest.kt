@@ -3,6 +3,7 @@ package br.com.zupacademy.marciosouza.pixkey.grpc.deletepixkey
 import br.com.zupacademy.marciosouza.*
 import br.com.zupacademy.marciosouza.pixkey.itauapi.ItauApiClient
 import br.com.zupacademy.marciosouza.pixkey.messages.Messages
+import br.com.zupacademy.marciosouza.pixkey.model.AssociatedAccount
 import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel
 import br.com.zupacademy.marciosouza.pixkey.repository.PixKeyRepository
 import io.grpc.ManagedChannel
@@ -53,8 +54,15 @@ internal class DeletePixKeyEndpointTest(val messageApi: Messages){
 
     @Test
     fun `Deve excluir uma chave pix`(){
+        val clientId = UUID.randomUUID()
+        val associatedAccount = AssociatedAccount(
+            TipoConta.CONTA_CORRENTE.toString(),
+            "ITAÚ UNIBANCO S.A.", "60701190",
+            "0001", "291900",
+            clientId.toString(), "Rafael M C Ponte", "02467781054"
+        )
 
-        val pixKey = PixKeyModel(UUID.randomUUID(), TipoChave.CPF, genericCpf, TipoConta.CONTA_CORRENTE)
+        val pixKey = PixKeyModel(clientId, TipoChave.CPF, genericCpf, TipoConta.CONTA_CORRENTE, associatedAccount)
         repository.save(pixKey)
 
         val request = DelKeyRequest.newBuilder()

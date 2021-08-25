@@ -6,6 +6,7 @@ import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.AccountItauResponse
 import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.InstituicaoReponse
 import br.com.zupacademy.marciosouza.pixkey.itauapi.dto.TitularResponse
 import br.com.zupacademy.marciosouza.pixkey.messages.Messages
+import br.com.zupacademy.marciosouza.pixkey.model.AssociatedAccount
 import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel
 import br.com.zupacademy.marciosouza.pixkey.repository.PixKeyRepository
 import io.grpc.ManagedChannel
@@ -241,8 +242,15 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
 
     @Test
     fun `Deve dar erro ao tentar cadastrar um chave que já foi cadastrada anteriormente`(){
+        val clientId = UUID.randomUUID()
+        val associatedAccount = AssociatedAccount(
+            TipoConta.CONTA_CORRENTE.toString(),
+            "ITAÚ UNIBANCO S.A.", "60701190",
+            "0001", "291900",
+            clientId.toString(), "Rafael M C Ponte","02467781054"
+        )
 
-        val pixKeyModel = PixKeyModel(UUID.randomUUID(), TipoChave.EMAIL, genericEmail, TipoConta.CONTA_CORRENTE)
+        val pixKeyModel = PixKeyModel(clientId, TipoChave.EMAIL, genericEmail, TipoConta.CONTA_CORRENTE, associatedAccount)
         repository.save(pixKeyModel)
 
         val request = KeyRequest

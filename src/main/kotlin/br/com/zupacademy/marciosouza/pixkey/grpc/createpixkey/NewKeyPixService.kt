@@ -23,10 +23,11 @@ class NewKeyPixService(
 {
     fun register(request: KeyRequest, responseObserver: StreamObserver<KeyResponse>) : PixKeyModel{
 
-        val pixKeyModel = request.toModel()
+        val pixKeyRequest = request.toModel()
 
         try {
-            pixKeyRepository.existsByKey(pixKeyModel.key) && throw ExistingPixKeyException(messageApi.keyAlreadyRegistered)
+            pixKeyRepository.existsByKey(pixKeyRequest.key)
+                    && throw ExistingPixKeyException(messageApi.keyAlreadyRegistered)
         }catch (exeption: Exception){
             when(exeption) {
                 is ExistingPixKeyException -> {
@@ -39,11 +40,11 @@ class NewKeyPixService(
             }
         }
 
-        val accountsItauResponse = itauApiClient.getAccount(pixKeyModel.clientId.toString(), pixKeyModel.accountType.name)
+        val accountsItauResponse = itauApiClient.getAccount(pixKeyRequest.clientId.toString(), pixKeyRequest.accountType.name)
 
         try{
-            accountsItauResponse.body()?:
-            throw IllegalStateException(messageApi.clientNotFound)
+            accountsItauResponse.body()
+                ?: throw IllegalStateException(messageApi.clientNotFound)
         }catch (exeption: Exception){
             when(exeption) {
                 is IllegalStateException -> {
@@ -55,6 +56,8 @@ class NewKeyPixService(
                 }
             }
         }
+
+        val pixKeyModel = pixKeyRequest.toModel(accountsItauResponse.body()!!)
 
         pixKeyRepository.save(pixKeyModel)
 

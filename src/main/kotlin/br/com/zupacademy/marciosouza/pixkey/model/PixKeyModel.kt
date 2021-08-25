@@ -28,7 +28,10 @@ class PixKeyModel(
 
     @field:NotNull
     @Enumerated
-    val accountType: TipoConta
+    val accountType: TipoConta,
+
+    @Embedded @NotNull
+    val associatedAccount : AssociatedAccount,
 ) {
     @Id
     @GeneratedValue
