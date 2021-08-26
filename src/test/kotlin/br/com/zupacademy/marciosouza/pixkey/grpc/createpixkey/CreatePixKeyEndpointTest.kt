@@ -97,7 +97,7 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
     }
 
     fun createPixKeyRequest(request: KeyRequest, accountItauResponse : AccountItauResponse) : CreatePixKeyRequest {
-        return CreatePixKeyRequest(
+        return CreatePixKeyRequest.fromModel(
             PixKeyModel(
                 UUID.fromString(request.clienteId),
                 request.tipoChave,
@@ -161,7 +161,13 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
             .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
+        val createPixKeyRequest = createPixKeyRequest(request, createAccountItauResponse)
+
+        `when`(bcbApi.postPixKey(createPixKeyRequest))
+            .thenReturn(HttpResponse.ok(createPixKeyResponse(createPixKeyRequest)))
+
         val response: KeyResponse = pixGrpc.create(request)
+
         with(response) {
             assertNotNull(pixId)
             assertTrue(repository.existsByKey(genericPhone))
@@ -183,6 +189,11 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
             .thenReturn(HttpResponse.ok(createAccountItauResponse))
 
+        val createPixKeyRequest = createPixKeyRequest(request, createAccountItauResponse)
+
+        `when`(bcbApi.postPixKey(createPixKeyRequest))
+            .thenReturn(HttpResponse.ok(createPixKeyResponse(createPixKeyRequest)))
+
         val response: KeyResponse = pixGrpc.create(request)
         with(response) {
             assertNotNull(pixId)
@@ -203,6 +214,11 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
 
         `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
             .thenReturn(HttpResponse.ok(createAccountItauResponse))
+
+        val createPixKeyRequest = createPixKeyRequest(request, createAccountItauResponse)
+
+        `when`(bcbApi.postPixKey(createPixKeyRequest))
+            .thenReturn(HttpResponse.ok(createPixKeyResponse(createPixKeyRequest)))
 
         val response: KeyResponse = pixGrpc.create(request)
         with(response) {

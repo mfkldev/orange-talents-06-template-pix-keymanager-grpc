@@ -65,7 +65,7 @@ class NewKeyPixService(
 
         pixKeyRepository.save(pixKeyModel)
 
-        bcbApiClient.postPixKey(CreatePixKeyRequest(pixKeyModel)).run{
+        bcbApiClient.postPixKey(CreatePixKeyRequest.fromModel(pixKeyModel)).run{
             pixKeyModel.associateKeyFromBcb(body()!!.key)
         }
 
