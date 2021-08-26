@@ -28,7 +28,8 @@ required.valid.typeaccount: É obriatório passar um tipo de conta válido
 invalid.pix.format: Formato da chave Pix não é válido
 required.pix.id: É obrigatório passar o id do pix
 pixkey.not.found: Chave pix não encontrada
-uuid.bad.format: O valor está mal formatado
+uuid.bad.format: O valor do Client ID está mal formatado
+key.bigger.77: A chave não pode ter mais de 77 caracteres
 
 #Client
 itau.api.url: http://localhost:9091/api/v1

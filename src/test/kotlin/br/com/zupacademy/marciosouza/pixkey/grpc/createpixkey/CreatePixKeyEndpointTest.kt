@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,6 +40,8 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
     val genericCpf: String = "84141550060"
     val genericPhone: String = "+5598984000000"
     val genericCreatedAt: String = "2021-08-25T18:39:03.052Z"
+
+    val LOG: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Inject
     lateinit var pixGrpc: PixKeyServiceGrpc.PixKeyServiceBlockingStub
@@ -217,6 +221,8 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
 
         val createPixKeyRequest = createPixKeyRequest(request, createAccountItauResponse)
 
+        LOG.warn("CREATE PIX KEY REQUEST DO TEST -> ${createPixKeyRequest.toString()}")
+
         `when`(bcbApi.postPixKey(createPixKeyRequest))
             .thenReturn(HttpResponse.ok(createPixKeyResponse(createPixKeyRequest)))
 
@@ -381,7 +387,7 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
         }
 
         with(error) {
-            assertEquals("save.entity: formato da chave Pix não é válido", status.description)
+            assertEquals(messageApi.invalidPixFormat, status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
     }
@@ -407,7 +413,7 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
         }
 
         with(error) {
-            assertEquals("save.entity: formato da chave Pix não é válido", status.description)
+            assertEquals(messageApi.invalidPixFormat, status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
     }
@@ -433,7 +439,7 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
         }
 
         with(error) {
-            assertEquals("save.entity: formato da chave Pix não é válido", status.description)
+            assertEquals(messageApi.invalidPixFormat, status.description)
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
         }
     }

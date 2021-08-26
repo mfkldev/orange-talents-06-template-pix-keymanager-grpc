@@ -24,4 +24,10 @@ class Messages {
 
     @Value("\${uuid.bad.format:}")
     lateinit var uuidBadFomart: String
+
+    @Value("\${key.bigger.77:}")
+    lateinit var keyBigger77: String
+
+    @Value("\${invalid.pix.format:}")
+    lateinit var invalidPixFormat: String
 }

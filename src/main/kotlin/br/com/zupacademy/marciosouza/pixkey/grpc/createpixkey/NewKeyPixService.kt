@@ -12,6 +12,8 @@ import br.com.zupacademy.marciosouza.pixkey.repository.PixKeyRepository
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
 import io.micronaut.validation.Validated
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import javax.inject.Inject
 import javax.inject.Singleton
 import javax.transaction.Transactional
@@ -22,50 +24,48 @@ class NewKeyPixService(
     @Inject val pixKeyRepository: PixKeyRepository,
     @Inject val itauApiClient: ItauApiClient,
     @Inject val bcbApiClient: BcbApiClient,
-    val messageApi: Messages)
-{
+    val messageApi: Messages
+) {
+    val LOG: Logger = LoggerFactory.getLogger(this::class.java)
+
     @Transactional
-    fun register(request: KeyRequest, responseObserver: StreamObserver<KeyResponse>) : PixKeyModel{
+    fun register(request: KeyRequest, responseObserver: StreamObserver<KeyResponse>): PixKeyModel {
 
         val pixKeyRequest = request.toModel()
 
         try {
             pixKeyRepository.existsByKey(pixKeyRequest.key)
                     && throw ExistingPixKeyException(messageApi.keyAlreadyRegistered)
-        }catch (exeption: Exception){
-            when(exeption) {
-                is ExistingPixKeyException -> {
-                    responseObserver.onError(
-                        Status.ALREADY_EXISTS
-                            .augmentDescription(messageApi.keyAlreadyRegistered)
-                            .asRuntimeException()
-                    )
-                }
-            }
+        } catch (exception: ExistingPixKeyException) {
+            responseObserver.onError(
+                Status.ALREADY_EXISTS
+                    .augmentDescription(messageApi.keyAlreadyRegistered)
+                    .asRuntimeException()
+            )
         }
 
-        val accountsItauResponse = itauApiClient.getAccount(pixKeyRequest.clientId.toString(), pixKeyRequest.accountType.name)
+        val accountsItauResponse =
+            itauApiClient.getAccount(pixKeyRequest.clientId.toString(), pixKeyRequest.accountType.name)
 
-        try{
+        try {
             accountsItauResponse.body()
                 ?: throw IllegalStateException(messageApi.clientNotFound)
-        }catch (exeption: Exception){
-            when(exeption) {
-                is IllegalStateException -> {
-                    responseObserver.onError(
-                        Status.NOT_FOUND
-                            .augmentDescription(messageApi.clientNotFound)
-                            .asRuntimeException()
-                    )
-                }
-            }
+        } catch (exception: IllegalStateException) {
+            responseObserver.onError(
+                Status.NOT_FOUND
+                    .augmentDescription(messageApi.clientNotFound)
+                    .asRuntimeException()
+            )
         }
 
         val pixKeyModel = pixKeyRequest.toModel(accountsItauResponse.body()!!)
 
         pixKeyRepository.save(pixKeyModel)
 
-        bcbApiClient.postPixKey(CreatePixKeyRequest.fromModel(pixKeyModel)).run{
+        val createPixKeyRequest = CreatePixKeyRequest.fromModel(pixKeyModel)
+
+        bcbApiClient.postPixKey(createPixKeyRequest).run {
+            LOG.warn("CREATE PIX KEY REQUEST DO GRPC -> ${createPixKeyRequest.toString()}")
             pixKeyModel.associateKeyFromBcb(body()!!.key)
         }
 
