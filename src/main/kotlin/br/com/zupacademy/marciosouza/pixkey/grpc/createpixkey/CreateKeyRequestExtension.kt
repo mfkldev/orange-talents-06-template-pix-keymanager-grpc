@@ -10,7 +10,7 @@ fun KeyRequest.toModel(): PixKeyRequest {
     return PixKeyRequest(
         clientId = UUID.fromString(clienteId),
         keyType = TipoChave.valueOf(tipoChave.name),
-        key = if(tipoChave == TipoChave.ALEATORIA) UUID.randomUUID().toString() else chave,
+        key = chave,
         accountType = TipoConta.valueOf(tipoConta.name)
     )
 }

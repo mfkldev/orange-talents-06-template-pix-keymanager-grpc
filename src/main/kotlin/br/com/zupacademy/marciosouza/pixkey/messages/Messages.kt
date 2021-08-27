@@ -30,4 +30,7 @@ class Messages {
 
     @Value("\${invalid.pix.format:}")
     lateinit var invalidPixFormat: String
+
+    @Value("\${unexpected.error:}")
+    lateinit var unexpectedError: String
 }

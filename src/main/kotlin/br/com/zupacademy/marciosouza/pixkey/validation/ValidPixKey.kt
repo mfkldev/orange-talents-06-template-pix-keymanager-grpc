@@ -33,10 +33,9 @@ class ValidPixKeyValidator : ConstraintValidator<ValidPixKey, PixKeyModel> {
     ): Boolean {
 
         when(value?.keyType){
-
             TipoChave.TELEFONE -> return value.key.matches("^\\+[1-9][0-9]\\d{1,14}$".toRegex())
             TipoChave.CPF -> return value.key.matches("^[0-9]{11}\$".toRegex())
-            TipoChave.EMAIL -> return value.key.contains("@")
+            TipoChave.EMAIL -> return value.key.matches("^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$".toRegex())
 
             else -> return true
         }

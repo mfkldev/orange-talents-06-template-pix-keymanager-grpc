@@ -4,13 +4,19 @@ import br.com.zupacademy.marciosouza.KeyRequest
 import br.com.zupacademy.marciosouza.KeyResponse
 import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.BcbApiClient
 import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.dto.CreatePixKeyRequest
+import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.dto.CreatePixKeyResponse
 import br.com.zupacademy.marciosouza.pixkey.exception.ExistingPixKeyException
 import br.com.zupacademy.marciosouza.pixkey.client.itauapi.ItauApiClient
+import br.com.zupacademy.marciosouza.pixkey.exception.InternalServerErrorException
+import br.com.zupacademy.marciosouza.pixkey.grpc.createpixkey.dto.ProblemBcb
 import br.com.zupacademy.marciosouza.pixkey.messages.Messages
 import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel
 import br.com.zupacademy.marciosouza.pixkey.repository.PixKeyRepository
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
+import io.micronaut.http.HttpResponse
+import io.micronaut.http.HttpStatus
+import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.validation.Validated
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -59,15 +65,27 @@ class NewKeyPixService(
         }
 
         val pixKeyModel = pixKeyRequest.toModel(accountsItauResponse.body()!!)
-
-        pixKeyRepository.save(pixKeyModel)
-
         val createPixKeyRequest = CreatePixKeyRequest.fromModel(pixKeyModel)
 
-        bcbApiClient.postPixKey(createPixKeyRequest).run {
-            LOG.warn("CREATE PIX KEY REQUEST DO GRPC -> ${createPixKeyRequest.toString()}")
-            pixKeyModel.associateKeyFromBcb(body()!!.key)
+
+        try {
+            val responseBcb = bcbApiClient.postPixKey(createPixKeyRequest)
+
+            pixKeyModel.associateKeyFromBcb(responseBcb.body()!!.key)
+        } catch (e: HttpClientResponseException) {
+
+            when (e.status) {
+                HttpStatus.UNPROCESSABLE_ENTITY -> {
+                    throw ExistingPixKeyException(messageApi.keyAlreadyRegistered)
+                }
+                else -> {
+                    "status = ${e.status}; mensagem = ${e.message} "
+                    throw InternalServerErrorException(messageApi.unexpectedError)
+                }
+            }
         }
+
+        pixKeyRepository.save(pixKeyModel)
 
         return pixKeyModel
     }

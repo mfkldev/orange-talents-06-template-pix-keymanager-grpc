@@ -115,7 +115,10 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
     fun createPixKeyResponse(createPixKeyRequest: CreatePixKeyRequest): CreatePixKeyResponse{
         return CreatePixKeyResponse(
             createPixKeyRequest.convertKeyType(),
-            createPixKeyRequest.key,
+            when (createPixKeyRequest.keyType) {
+                TipoChave.ALEATORIA -> UUID.randomUUID().toString()
+                else -> createPixKeyRequest.key
+            },
             createPixKeyRequest.bankAccount,
             createPixKeyRequest.owner,
             genericCreatedAt

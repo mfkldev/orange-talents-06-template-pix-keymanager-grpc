@@ -65,4 +65,8 @@ class PixKeyRequest(
         result = 31 * result + accountType.hashCode()
         return result
     }
+
+    override fun toString(): String {
+        return "PixKeyRequest(clientId=$clientId, keyType=$keyType, key='$key', accountType=$accountType)"
+    }
 }
