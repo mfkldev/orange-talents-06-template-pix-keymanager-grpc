@@ -3,6 +3,7 @@ package br.com.zupacademy.marciosouza.pixkey.grpc.deletepixkey
 import br.com.zupacademy.marciosouza.DelKeyRequest
 import br.com.zupacademy.marciosouza.DelKeyResponse
 import br.com.zupacademy.marciosouza.DeletePixKeyServiceGrpc
+import br.com.zupacademy.marciosouza.pixkey.exception.ForbiddenOperationBcbException
 import br.com.zupacademy.marciosouza.pixkey.messages.Messages
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
@@ -18,7 +19,7 @@ class DeletePixKeyEndpoint(
     val messageApi : Messages) : DeletePixKeyServiceGrpc.DeletePixKeyServiceImplBase()
 {
     override fun delete(
-        request : DelKeyRequest,
+        request: DelKeyRequest,
         responseObserver: StreamObserver<DelKeyResponse>)
     {
         try{
@@ -35,6 +36,9 @@ class DeletePixKeyEndpoint(
             responseObserver.onError(
                 when(exception){
                     is ObjectNotFoundException -> Status.NOT_FOUND
+                        .augmentDescription(exception.message)
+                        .asRuntimeException()
+                    is ForbiddenOperationBcbException -> Status.PERMISSION_DENIED
                         .augmentDescription(exception.message)
                         .asRuntimeException()
                     is ConstraintViolationException -> Status.INVALID_ARGUMENT

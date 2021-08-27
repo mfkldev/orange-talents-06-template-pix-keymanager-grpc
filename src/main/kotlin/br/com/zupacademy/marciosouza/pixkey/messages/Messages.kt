@@ -19,18 +19,27 @@ class Messages {
     @Value("\${key.already.registered}")
     lateinit var keyAlreadyRegistered: String
 
-    @Value("\${pixkey.not.found:}")
-    lateinit var pixkeyNotFound: String
+    @Value("\${key.already.registered.bcb}")
+    lateinit var keyAlreadyRegisteredBcb: String
 
-    @Value("\${uuid.bad.format:}")
+    @Value("\${pixkey.notfound.this}")
+    lateinit var pixkeyNotfoundThis: String
+
+    @Value("\${pixkey.notfound.bcb}")
+    lateinit var pixkeyNotFoundBcb: String
+
+    @Value("\${uuid.bad.format}")
     lateinit var uuidBadFomart: String
 
-    @Value("\${key.bigger.77:}")
+    @Value("\${key.bigger.77}")
     lateinit var keyBigger77: String
 
-    @Value("\${invalid.pix.format:}")
+    @Value("\${invalid.pix.format}")
     lateinit var invalidPixFormat: String
 
-    @Value("\${unexpected.error:}")
+    @Value("\${unexpected.error}")
     lateinit var unexpectedError: String
+
+    @Value("\${forbidden.operation.bcb}")
+    lateinit var forbiddenOperationBcb: String
 }

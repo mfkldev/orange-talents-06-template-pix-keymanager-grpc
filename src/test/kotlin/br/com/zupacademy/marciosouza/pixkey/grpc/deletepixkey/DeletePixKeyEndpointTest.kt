@@ -1,6 +1,9 @@
 package br.com.zupacademy.marciosouza.pixkey.grpc.deletepixkey
 
 import br.com.zupacademy.marciosouza.*
+import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.BcbApiClient
+import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.dto.DeletePixKeyRequest
+import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.dto.DeletePixKeyResponse
 import br.com.zupacademy.marciosouza.pixkey.client.itauapi.ItauApiClient
 import br.com.zupacademy.marciosouza.pixkey.messages.Messages
 import br.com.zupacademy.marciosouza.pixkey.model.AssociatedAccount
@@ -12,6 +15,7 @@ import io.grpc.StatusRuntimeException
 import io.micronaut.context.annotation.Factory
 import io.micronaut.grpc.annotation.GrpcChannel
 import io.micronaut.grpc.server.GrpcServerChannel
+import io.micronaut.http.HttpResponse
 import io.micronaut.test.annotation.MockBean
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
 import org.junit.jupiter.api.Assertions.*
@@ -19,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
+import org.mockito.Mockito.`when`
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,16 +37,20 @@ internal class DeletePixKeyEndpointTest(val messageApi: Messages){
     @Inject
     lateinit var repository: PixKeyRepository
 
+    @Inject
+    lateinit var bcbApi: BcbApiClient
+
     val genericCpf: String = "84141550060"
+    val genericDeletedAt: String = "2021-08-25T18:39:03.052Z"
 
     @BeforeEach
     fun setUp() {
         repository.deleteAll()
     }
 
-    @MockBean(ItauApiClient::class)
-    fun mockItauApiClient(): ItauApiClient?{
-        return Mockito.mock(ItauApiClient::class.java)
+    @MockBean(BcbApiClient::class)
+    fun mockBcbApiClient(): BcbApiClient? {
+        return Mockito.mock(BcbApiClient::class.java)
     }
 
     @Factory
@@ -53,7 +62,7 @@ internal class DeletePixKeyEndpointTest(val messageApi: Messages){
     }
 
     @Test
-    fun `Deve excluir uma chave pix`(){
+    fun Deve_excluir_uma_chave_pix(){
         val clientId = UUID.randomUUID()
         val associatedAccount = AssociatedAccount(
             TipoConta.CONTA_CORRENTE.toString(),
@@ -70,6 +79,9 @@ internal class DeletePixKeyEndpointTest(val messageApi: Messages){
             .setPixId(pixKey.pixId.toString())
             .build()
 
+        `when`(bcbApi.deletePixKey(pixKey.key, DeletePixKeyRequest(pixKey.key, pixKey.associatedAccount.bankIspb)))
+            .thenReturn(HttpResponse.ok(DeletePixKeyResponse(pixKey.key, pixKey.associatedAccount.bankIspb, genericDeletedAt)))
+
         val response = delPixGrpc.delete(request)
 
         with(response){
@@ -80,7 +92,7 @@ internal class DeletePixKeyEndpointTest(val messageApi: Messages){
     }
 
     @Test
-    fun `Deve dar erro ao tentar excluir uma chave pix que não existe`(){
+    fun Deve_dar_erro_ao_tentar_excluir_uma_chave_pix_que_nao_existe(){
 
         val request = DelKeyRequest.newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -93,12 +105,12 @@ internal class DeletePixKeyEndpointTest(val messageApi: Messages){
 
         with(error){
             assertEquals(Status.NOT_FOUND.code, status.code)
-            assertEquals(messageApi.pixkeyNotFound, status.description)
+            assertEquals(messageApi.pixkeyNotfoundThis, status.description)
         }
     }
 
     @Test
-    fun `Deve dar erro ao enviar id cliente mal formatado`(){
+    fun Deve_dar_erro_ao_enviar_id_cliente_mal_formatado(){
 
         val request = DelKeyRequest.newBuilder()
             .setClienteId("NON-UUID")
@@ -116,7 +128,7 @@ internal class DeletePixKeyEndpointTest(val messageApi: Messages){
     }
 
     @Test
-    fun `Deve dar erro ao enviar id pix mal formatado`(){
+    fun Deve_dar_erro_ao_enviar_id_pix_mal_formatado(){
 
         val request = DelKeyRequest.newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -129,7 +141,7 @@ internal class DeletePixKeyEndpointTest(val messageApi: Messages){
 
         with(error){
             assertEquals(Status.INVALID_ARGUMENT.code, status.code)
-            assertEquals("delete.keyId: ${messageApi.uuidBadFomart}", status.description)
+            assertEquals("delete.pixId: ${messageApi.uuidBadFomart}", status.description)
         }
     }
 }

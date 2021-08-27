@@ -8,7 +8,6 @@ import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.dto.CreatePixKeyRespon
 import br.com.zupacademy.marciosouza.pixkey.exception.ExistingPixKeyException
 import br.com.zupacademy.marciosouza.pixkey.client.itauapi.ItauApiClient
 import br.com.zupacademy.marciosouza.pixkey.exception.InternalServerErrorException
-import br.com.zupacademy.marciosouza.pixkey.grpc.createpixkey.dto.ProblemBcb
 import br.com.zupacademy.marciosouza.pixkey.messages.Messages
 import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel
 import br.com.zupacademy.marciosouza.pixkey.repository.PixKeyRepository
@@ -26,7 +25,7 @@ import javax.transaction.Transactional
 
 @Validated
 @Singleton
-class NewKeyPixService(
+class CreateKeyPixService(
     @Inject val pixKeyRepository: PixKeyRepository,
     @Inject val itauApiClient: ItauApiClient,
     @Inject val bcbApiClient: BcbApiClient,
@@ -67,16 +66,14 @@ class NewKeyPixService(
         val pixKeyModel = pixKeyRequest.toModel(accountsItauResponse.body()!!)
         val createPixKeyRequest = CreatePixKeyRequest.fromModel(pixKeyModel)
 
-
         try {
             val responseBcb = bcbApiClient.postPixKey(createPixKeyRequest)
-
             pixKeyModel.associateKeyFromBcb(responseBcb.body()!!.key)
         } catch (e: HttpClientResponseException) {
 
             when (e.status) {
                 HttpStatus.UNPROCESSABLE_ENTITY -> {
-                    throw ExistingPixKeyException(messageApi.keyAlreadyRegistered)
+                    throw ExistingPixKeyException(messageApi.keyAlreadyRegisteredBcb)
                 }
                 else -> {
                     "status = ${e.status}; mensagem = ${e.message} "
