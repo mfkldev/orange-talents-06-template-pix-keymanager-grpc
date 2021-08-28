@@ -39,11 +39,13 @@ class PixKeyModel(
 
     val pixId: UUID = UUID.randomUUID()
 
-    override fun toString(): String {
-        return "PixKeyModel(clientId=$clientId, keyType=${keyType.name}, key='$key', accountType=${accountType.name}, id=$id, uuid=$pixId)"
-    }
-
     fun associateKeyFromBcb(keyFromBcb: String) {
         this.key = keyFromBcb
+    }
+
+    override fun toString(): String {
+        return "PixKeyModel(clientId=$clientId, keyType=${keyType.name}," +
+                "key='$key', accountType=${accountType.name}," +
+                "associatedAccount=${associatedAccount.toString()}, id=$id, pixId=$pixId)"
     }
 }

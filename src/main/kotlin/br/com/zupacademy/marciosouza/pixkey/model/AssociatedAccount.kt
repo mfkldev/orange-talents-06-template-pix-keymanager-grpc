@@ -12,4 +12,8 @@ class AssociatedAccount(
     val ownerId: String,
     val ownerName: String,
     val ownerCpf: String
-)
+){
+    override fun toString(): String {
+        return "AssociatedAccount(typeAccount='$typeAccount', bankName='$bankName', bankIspb='$bankIspb', branch='$branch', numberAccount='$numberAccount', ownerId='$ownerId', ownerName='$ownerName', ownerCpf='$ownerCpf')"
+    }
+}

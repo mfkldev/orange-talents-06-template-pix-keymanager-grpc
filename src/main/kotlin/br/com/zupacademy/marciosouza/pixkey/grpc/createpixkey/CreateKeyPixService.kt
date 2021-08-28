@@ -4,7 +4,6 @@ import br.com.zupacademy.marciosouza.KeyRequest
 import br.com.zupacademy.marciosouza.KeyResponse
 import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.BcbApiClient
 import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.dto.CreatePixKeyRequest
-import br.com.zupacademy.marciosouza.pixkey.client.bcbapi.dto.CreatePixKeyResponse
 import br.com.zupacademy.marciosouza.pixkey.exception.ExistingPixKeyException
 import br.com.zupacademy.marciosouza.pixkey.client.itauapi.ItauApiClient
 import br.com.zupacademy.marciosouza.pixkey.exception.InternalServerErrorException
@@ -13,7 +12,6 @@ import br.com.zupacademy.marciosouza.pixkey.model.PixKeyModel
 import br.com.zupacademy.marciosouza.pixkey.repository.PixKeyRepository
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
-import io.micronaut.http.HttpResponse
 import io.micronaut.http.HttpStatus
 import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.validation.Validated

@@ -42,7 +42,7 @@ class DeletePixService(
                 searchedPixKeyModel.key,
                 DeletePixKeyRequest(searchedPixKeyModel.key, searchedPixKeyModel.associatedAccount.bankIspb)
             ).run {
-                if(status.equals(HttpStatus.NOT_FOUND)) throw ObjectNotFoundException(messageApi.pixkeyNotFoundBcb) //DANDO NULLPOINTER NO TESTE AQUI
+                if(status.equals(HttpStatus.NOT_FOUND)) throw ObjectNotFoundException(messageApi.pixkeyNotFoundBcb)
             }
         }catch (e: HttpClientResponseException){
             when (e.status) {
