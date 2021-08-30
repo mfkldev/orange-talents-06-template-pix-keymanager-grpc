@@ -38,11 +38,11 @@ class CreateKeyPixService(
 
         try {
             pixKeyRepository.existsByKey(pixKeyRequest.key)
-                    && throw ExistingPixKeyException(messageApi.keyAlreadyRegistered)
+                    && throw ExistingPixKeyException(messageApi.keyAlreadyRegisteredThis)
         } catch (exception: ExistingPixKeyException) {
             responseObserver.onError(
                 Status.ALREADY_EXISTS
-                    .augmentDescription(messageApi.keyAlreadyRegistered)
+                    .augmentDescription(messageApi.keyAlreadyRegisteredThis)
                     .asRuntimeException()
             )
         }

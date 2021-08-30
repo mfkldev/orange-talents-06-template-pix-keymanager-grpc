@@ -16,10 +16,10 @@ class Messages {
     @Value("\${client.not.found}")
     lateinit var clientNotFound: String
 
-    @Value("\${key.already.registered}")
-    lateinit var keyAlreadyRegistered: String
+    @Value("\${keyalready.registered.this}")
+    lateinit var keyAlreadyRegisteredThis: String
 
-    @Value("\${key.already.registered.bcb}")
+    @Value("\${keyalready.registered.bcb}")
     lateinit var keyAlreadyRegisteredBcb: String
 
     @Value("\${pixkey.notfound.this}")

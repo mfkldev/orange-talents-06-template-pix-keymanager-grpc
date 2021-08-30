@@ -21,8 +21,8 @@ jpa.default.properties.hibernate.format_sql: true
 
 #Mensagens
 client.not.found: Cliente não foi encontrado nos registros de clientes do Itau
-key.already.registered: Essa chave pix já está registrada nesta API
-key.already.registered.bcb: Essa chave pix já está registrada na API BCB
+keyalready.registered.this: Essa chave pix já está registrada nesta API
+keyalready.registered.bcb: Essa chave pix já está registrada na API BCB
 required.id.client: É obrigatório passar o id do cliente
 required.valid.typekey: É obriatório passar um tipo de chave válido
 required.valid.typeaccount: É obriatório passar um tipo de conta válido

@@ -19,6 +19,8 @@ import io.micronaut.context.annotation.Factory
 import io.micronaut.grpc.annotation.GrpcChannel
 import io.micronaut.grpc.server.GrpcServerChannel
 import io.micronaut.http.HttpResponse
+import io.micronaut.http.HttpStatus
+import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.test.annotation.MockBean
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
 import org.junit.Assert.*
@@ -40,6 +42,13 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
     val genericCpf: String = "84141550060"
     val genericPhone: String = "+5598984000000"
     val genericCreatedAt: String = "2021-08-25T18:39:03.052Z"
+    val genericClientId = UUID.randomUUID()
+    val genericAssociatedAccount = AssociatedAccount(
+        TipoConta.CONTA_CORRENTE.toString(),
+        "ITAÚ UNIBANCO S.A.", "60701190",
+        "0001", "291900",
+        genericClientId.toString(), "Rafael M C Ponte", "02467781054"
+    )
 
     val LOG: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -224,8 +233,6 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
 
         val createPixKeyRequest = createPixKeyRequest(request, createAccountItauResponse)
 
-        LOG.warn("CREATE PIX KEY REQUEST DO TEST -> ${createPixKeyRequest.toString()}")
-
         `when`(bcbApi.postPixKey(createPixKeyRequest))
             .thenReturn(HttpResponse.ok(createPixKeyResponse(createPixKeyRequest)))
 
@@ -237,7 +244,7 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
     }
 
     @Test
-    fun `Nao deve cadastrar uma chave pix quando o cliente informado não for encontrado no sistema do Itau`() {
+    fun `Nao deve cadastrar uma chave pix quando o cliente informado nao for encontrado no sistema do Itau`() {
         val request = KeyRequest
             .newBuilder()
             .setClienteId(UUID.randomUUID().toString())
@@ -334,17 +341,10 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
     }
 
     @Test
-    fun `Deve dar erro ao tentar cadastrar um chave que já foi cadastrada anteriormente`() {
-        val clientId = UUID.randomUUID()
-        val associatedAccount = AssociatedAccount(
-            TipoConta.CONTA_CORRENTE.toString(),
-            "ITAÚ UNIBANCO S.A.", "60701190",
-            "0001", "291900",
-            clientId.toString(), "Rafael M C Ponte", "02467781054"
-        )
+    fun `Deve dar erro ao tentar cadastrar um chave ja cadastrada nesta API`() {
 
         val pixKeyModel =
-            PixKeyModel(clientId, TipoChave.EMAIL, genericEmail, TipoConta.CONTA_CORRENTE, associatedAccount)
+            PixKeyModel(genericClientId, TipoChave.EMAIL, genericEmail, TipoConta.CONTA_CORRENTE, genericAssociatedAccount)
         repository.save(pixKeyModel)
 
         val request = KeyRequest
@@ -365,10 +365,69 @@ internal class CreatePixKeyEndpointTest(val messageApi: Messages) {
         }
 
         with(error) {
-            assertEquals(messageApi.keyAlreadyRegistered, status.description)
+            assertEquals(messageApi.keyAlreadyRegisteredThis, status.description)
             assertEquals(Status.ALREADY_EXISTS.code, status.code)
         }
     }
+
+    @Test
+    fun `Deve dar erro ao tentar cadastrar um chave ja cadastrada na BCB API`() {
+
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId(UUID.randomUUID().toString())
+            .setTipoChave(TipoChave.EMAIL)
+            .setChave(genericEmail)
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        val createAccountItauResponse = createAccountItauResponse(request)
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
+
+        `when`(bcbApi.postPixKey(createPixKeyRequest(request, createAccountItauResponse)))
+            .thenThrow(HttpClientResponseException("erro", HttpResponse.status<Any?>(HttpStatus.UNPROCESSABLE_ENTITY)))
+
+        val error = assertThrows<StatusRuntimeException> {
+            pixGrpc.create(request)
+        }
+
+        with(error) {
+            assertEquals(messageApi.keyAlreadyRegisteredBcb, status.description)
+            assertEquals(Status.ALREADY_EXISTS.code, status.code)
+        }
+    }
+
+    @Test
+    fun `Deve dar erro quando o BCB API nao responder de forma esperada`() {
+
+        val request = KeyRequest
+            .newBuilder()
+            .setClienteId(UUID.randomUUID().toString())
+            .setTipoChave(TipoChave.EMAIL)
+            .setChave(genericEmail)
+            .setTipoConta(TipoConta.CONTA_CORRENTE)
+            .build()
+
+        val createAccountItauResponse = createAccountItauResponse(request)
+
+        `when`(itauApi.getAccount(request.clienteId, request.tipoConta.name))
+            .thenReturn(HttpResponse.ok(createAccountItauResponse))
+
+        `when`(bcbApi.postPixKey(createPixKeyRequest(request, createAccountItauResponse)))
+            .thenThrow(HttpClientResponseException("erro", HttpResponse.status<Any?>(HttpStatus.I_AM_A_TEAPOT)))
+
+        val error = assertThrows<StatusRuntimeException> {
+            pixGrpc.create(request)
+        }
+
+        with(error) {
+            assertEquals(messageApi.unexpectedError, status.description)
+            assertEquals(Status.INTERNAL.code, status.code)
+        }
+    }
+
 
     @Test
     fun `Deve dar erro ao enviar CPF mal formatado`() {
